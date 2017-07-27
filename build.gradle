@@ -61,7 +61,7 @@ task doc {
         exec {
             workingDir 'docs/'
             executable "make"
-            args('doc')
+            args('doc', "SPHINXBUILD=${miniconda.buildEnvironmentDirectory}/bin/sphinx-build")
         }
     }
 }
