@@ -2,7 +2,7 @@
 
 import sample.subsample
 
-def test_small_function():
-    assert sample.subsample.small_function() == 1
+def test_another_small_function():
+    assert sample.subsample.another_small_function() == 1
 
 
