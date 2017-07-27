@@ -15,7 +15,7 @@ You don't need to install Gradle or Conda on your computer. Just use `gradlew` c
 
 A task **doc** is configured inside the `build.gradle` file. This task run the command `make` into the `docs/` directory to compile the documentation from `docs/Makefile`.
 
-It will compile the doc into html, man and epud format.
+It will compile the doc into html, man and epub format.
 
 ```
 $ ./gradlew doc
