@@ -18,3 +18,26 @@ dependencies without any conflit with your favorite environment.
 
 You don't need to install Gradle or Conda on your computer. Just use
 ``gradlew`` command (Gradle Wrapper).
+
+Compile the Sphinx Documentation
+--------------------------------
+
+A task **doc** is configured inside the ``build.gradle`` file. This task
+run the command ``make`` into the ``docs/`` directory to compile the
+documentation from ``docs/Makefile``.
+
+It will compile the doc into html, man and epud format.
+
+::
+
+    $ ./gradlew doc
+
+Run unit tests using Pytest
+---------------------------
+
+In ``tests/`` folder, 2 unit test suites are available, one per module
+or sub-module.
+
+::
+
+    $ ./gradlew test
