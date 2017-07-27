@@ -1,0 +1,81 @@
+plugins {
+  id "com.palantir.python.miniconda" version "0.8.0"    // Miniconda env
+}
+
+// Imports
+
+
+miniconda {
+    bootstrapDirectoryPrefix = new File(System.getProperty('user.home'), '.miniconda')
+    buildEnvironmentDirectory = new File(buildDir, 'python')
+    minicondaVersion = '3.19.0'
+    packages = ['python', 'pytest', 'pyyaml', 'sphinx', 'pandoc']
+    pythonVersion = 2
+    channels = ['https://repo.continuum.io/pkgs/free', 'conda-forge']
+
+    /*
+        Notes about Python Dependencies:
+
+        Use pyyaml in place of yaml lib (C Lib) because miniconda doesn't manage it
+        (bug: https://github.com/conda/conda/issues/3738).
+        Prefer use the system C lib (more efficient).
+    */
+}
+
+description ="""
+Project name: ${project.name}
+"""
+
+// Configure Project extra properties
+project.ext {
+    targetDir = 'target/'
+}
+
+
+//Configure Gradle Wrapper
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.0.1'
+}
+
+task cleanTarget() {
+    delete "${project.ext.targetDir}"
+}
+
+task cleanAll(){
+    dependsOn 'cleanBootstrapPython', 'cleanCondaBuild', 'cleanCondaBuildCheck', 'cleanConfigureRootCondaEnv', 'cleanSetupCondaBuild', 'cleanSetupPython', 'cleanTarget'
+}
+
+task doc {
+    dependsOn 'setupPython'
+    doLast {
+        println 'Compile Project Documentation'
+        exec {
+            workingDir 'docs/'
+            executable "make"
+            args('clean')
+        }
+        exec {
+            executable "${miniconda.buildEnvironmentDirectory}/bin/pandoc"
+            args('--from=markdown', '--to=rst', '--output=docs/readme.rst', 'README.md')
+        }
+        exec {
+            workingDir 'docs/'
+            executable "make"
+            args('doc')
+        }
+    }
+}
+
+// Setting tests
+task test {
+    dependsOn 'unitTests'     // define a test suite: add other tasks like functionnal tests, ...
+    doLast {
+        println 'All Tests Pass'
+    }
+}
+
+task unitTests(type: Exec) {
+    dependsOn 'setupPython'
+    executable "${miniconda.buildEnvironmentDirectory}/bin/python"
+    args('-m', 'pytest', 'tests/')
+}

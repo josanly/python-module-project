@@ -1,3 +1,19 @@
+# Gradle
+.gradle/
+/build/
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Cache of project
+.gradletasknamecache
+
+# Build output directies
+/target
+*/target
+/build
+*/build
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
