@@ -1,0 +1,20 @@
+package:
+  name: sample
+  version: "1.0.0"
+
+source:
+  git_url: https://github.com/josanly/python-module-project.git
+  git_rev: 1.0.0
+
+script: python setup.py install
+
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python
+
+about:
+  license: GPL v3.0
