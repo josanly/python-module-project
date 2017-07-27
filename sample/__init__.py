@@ -1,5 +1,13 @@
 def small_function():
-    """Documentation"""
+    '''
+       Documentation
+       
+       :Example:
+
+       >>> x = small_function()
+       >>> print(x)
+       0
+    '''
     return 0
 
 
