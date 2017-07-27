@@ -52,7 +52,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 
 .PHONY: doc
-doc: html epub epub3 man
+doc: html epub man
 	
 	@echo
 	@echo "Complete Build finished."
