@@ -4,7 +4,8 @@ This is an example of python module.
 
 * [Gradle](https://gradle.org/) manages the project depedencies and lets you to configure and automize tasks like documentation generation, unit tests, ...
 * [Sphinx](http://www.sphinx-doc.org/en/stable/index.html) is a tool that makes it easy to create intelligent and beautiful documentation.
-* [Pytest](https://docs.pytest.org/en/latest/) makes it easy to write small tests, yet scales to support complex functional testing for applications and libraries.
+* [Pytest](https://docs.pytest.org/en/latest/) makes it easy to write small tests, yet scales to support complex functional testing for applications and libraries. 
+* [Pytest-Cov](https://github.com/pytest-dev/pytest-cov) computes test coverage (Pytest plugin).
 * [Conda](https://conda.io/docs/intro.html): Package, dependency and environment management for any language: Python, R, Scala, Java, Javascript, C/ C++, ...
 
 Gradle imports and locally installs a MiniConda env with all required dependencies without any conflit with your favorite environment.
