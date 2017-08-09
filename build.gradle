@@ -1,17 +1,24 @@
 plugins {
   id "com.palantir.python.miniconda" version "0.8.0"    // Miniconda env
+  id "com.wiredforcode.spawn" version "0.8.2"          // Gradle Process Task
 }
 
 // Imports
+import com.wiredforcode.gradle.spawn.SpawnProcessTask
+import com.wiredforcode.gradle.spawn.KillProcessTask
 
 
 miniconda {
     bootstrapDirectoryPrefix = new File(System.getProperty('user.home'), '.miniconda')
     buildEnvironmentDirectory = new File(buildDir, 'python')
-    minicondaVersion = '3.19.0'
-    packages = ['python', 'pytest', 'pyyaml', 'sphinx', 'pandoc']
-    pythonVersion = 2
-    channels = ['https://repo.continuum.io/pkgs/free', 'conda-forge']
+    minicondaVersion = '4.3.21'                                         // see https://repo.continuum.io/miniconda/
+    packages = ['python', 'pytest', 'pytest-cov',
+                'pyyaml', 
+                'sphinx', 'pandoc',
+                'pypiserver', 'passlib',
+                'graphviz', 'gprof2dot']
+    pythonVersion = new Integer(versionOfPython).intValue()
+    channels = ['https://repo.continuum.io/pkgs/free', 'conda-forge', 'auto', 'rmg', 'hargup/label/pypi']
 
     /*
         Notes about Python Dependencies:
@@ -28,24 +35,44 @@ Project name: ${project.name}
 
 // Configure Project extra properties
 project.ext {
-    targetDir = 'target/'
+    pypiServerDir = new File(buildDir, 'pypiserver')
+    pypiServerHstPassConf = new File(pypiServerDir, 'htpasswd.txt')
+    pypiServerLogFile = new File(pypiServerDir, 'pypiserver.log')
+    pypiServerPackagesDir = new File(pypiServerDir, 'packages')
+    profileDir = new File(buildDir, 'profiles')
 }
 
 
 //Configure Gradle Wrapper
 task wrapper(type: Wrapper) {
-    gradleVersion = '4.0.1'
+    gradleVersion = '4.1'
 }
 
-task cleanTarget() {
-    delete "${project.ext.targetDir}"
+// Configure cleaning tasks
+task cleanTarget(type: Delete) {
+    delete targetDir
 }
 
-task cleanAll(){
-    dependsOn 'cleanBootstrapPython', 'cleanCondaBuild', 'cleanCondaBuildCheck', 'cleanConfigureRootCondaEnv', 'cleanSetupCondaBuild', 'cleanSetupPython', 'cleanTarget'
+task cleanProfiling(type: Delete) {
+    delete profileDir
 }
 
-task doc {
+task cleanDoc(type: Delete) {
+    delete new File(buildDir, 'docs')
+}
+
+task cleanLocalPypiServer(type: Delete) {
+    delete pypiServerDir
+}
+
+task cleanAll {
+    dependsOn 'cleanBootstrapPython', 'cleanCondaBuild', 'cleanCondaBuildCheck',
+              'cleanConfigureRootCondaEnv', 'cleanSetupCondaBuild',
+              'cleanSetupPython', 'cleanTarget', 'cleanProfiling',
+              'cleanLocalPypiServer', 'cleanDoc'
+}
+
+task docOnly {
     dependsOn 'setupPython'
     doLast {
         println 'Compile Project Documentation'
@@ -66,6 +93,10 @@ task doc {
     }
 }
 
+task doc {
+    dependsOn 'unitTestReport', 'profiling', 'docOnly'
+}
+
 // Setting tests
 task test {
     dependsOn 'unitTests'     // define a test suite: add other tasks like functionnal tests, ...
@@ -77,5 +108,203 @@ task test {
 task unitTests(type: Exec) {
     dependsOn 'setupPython'
     executable "${miniconda.buildEnvironmentDirectory}/bin/python"
-    args('-m', 'pytest', 'tests/')
+    args('-m', 'pytest', 
+         '--cov-report', 'term:skip-covered',
+         '--cov=sbm/', 'tests/')
 }
+
+task unitTestReport {
+    dependsOn 'setupPython'
+    doLast {
+        exec {
+            executable "${miniconda.buildEnvironmentDirectory}/bin/python"
+            args('-m', 'pytest',
+                 '--cov-report', 'term:skip-covered',
+                 '--cov-report', 'html',
+                 '--cov=sbm/', 'tests/')
+        }
+        copy {
+            from "${projectDir}"
+            into "docs/sphinx/_static"
+            include 'htmlcov/'
+        }
+        delete {
+            delete "htmlcov"
+        }
+    }
+}
+
+// install any Dependencies not managed by miniconda
+// prefer to use pip from miniconda env: ${miniconda.buildEnvironmentDirectory}/bin/pip
+task setupDep {
+    dependsOn 'setupPython'
+    doLast {
+        println('setupDep disable')
+    }
+}
+
+// Create a source release of the module
+task createRelease {
+    dependsOn 'unitTests'
+    doLast {
+        try {
+            def prefix = new String("--prefix=${project.name}-" + tagName + "-src/")
+            def release = new String(releaseDir + "${project.name}-" + tagName + ".tar.gz")
+            logger.debug(prefix)
+            logger.debug(release)
+            logger.quiet('Create a Git tag')
+            exec {
+                executable "git"
+                args('tag', '-a', tagName, '-m', tagLog)
+            }
+            logger.quiet('Create a source archive from the tag ' + tagName)
+            exec {
+                executable "git"
+                args('archive', '--format=tar.gz', prefix, tagName, '-o', release)
+            }
+        } catch (MissingPropertyException e) {
+            logger.error(e.getMessage())
+            logger.error('Please define properties: tagName and tagLog inside ' +
+                         'gradle.properties file or using -P option in command line')
+            throw new InvalidUserDataException('tagName and/or tagLog properties are missing')
+        }
+    }
+}
+
+// Start the Local Pypi Server, then install the package into it and stop it after.
+task install {
+    dependsOn 'startLocalPypiServer', 'installOnLocalPypiServer', 'stopLocalPypiServer'
+}
+
+
+// Pypi Server
+task setupLocalPypiServer {
+    doLast {
+        // Create htpasswd.txt file
+        if(project.ext.pypiServerHstPassConf.exists()){
+            logger.info("${project.ext.pypiServerHstPassConf} file already exists")
+        } else {
+            logger.quiet("${project.ext.pypiServerHstPassConf} file does not already exist. Create it")
+            exec {
+                executable "htpasswd"
+                args('-bsc', project.ext.pypiServerHstPassConf, System.getenv('USERNAME'), pypiServerPasswd)
+            }
+        }
+
+        // Configure local Pypi Server access (.pypirc)
+        def pypircFile = new File(System.getProperty('user.home'), '.pypirc')
+        if(pypircFile.exists()){
+            logger.quiet("${pypircFile} file already exists")
+            logger.quiet("please add manually the configuration of local Pypi Server access if it is not already done")
+        } else {
+            logger.quiet("${pypircFile} file does not already exist. Create it")
+            copy {
+                from projectDir
+                into System.getProperty('user.home')
+                include('pypirc')
+                rename('pypirc', '.pypirc')
+            }
+            def writer = new FileWriter(new File(System.getProperty('user.home'), '.pypirc'), true)
+            try {
+                writer.write("username: " + System.getenv('USERNAME') + "\n")
+                writer.write("password: " + pypiServerPasswd + "\n")
+                writer.flush()
+            } finally {
+                writer.close()
+            }
+        }
+    }
+}
+
+task startLocalPypiServer(type: SpawnProcessTask) {
+    dependsOn 'setupPython', 'setupLocalPypiServer'
+
+    project.ext.pypiServerPackagesDir.mkdirs()
+    def pypiserverCmd = new String("${miniconda.buildEnvironmentDirectory}/bin/pypi-server " +
+                                   "-o " +
+                                   "-p ${project.ext.pypiServerPort} " +
+                                   "-P ${project.ext.pypiServerHstPassConf} " +
+                                   "${project.ext.pypiServerPackagesDir}")
+
+    command pypiserverCmd
+    ready "Listening on http://0.0.0.0:${project.ext.pypiServerPort}/"
+}
+
+task stopLocalPypiServer(type: KillProcessTask)
+
+task installOnLocalPypiServer {
+    dependsOn 'startLocalPypiServer'
+    doLast {
+        exec {
+            executable "${miniconda.buildEnvironmentDirectory}/bin/pandoc"
+            args('--from=markdown', '--to=rst', '--output=README.rst', 'README.md')
+        }
+        exec {
+            executable "${miniconda.buildEnvironmentDirectory}/bin/python"
+            args('setup.py',
+                 'register', '-r', 'local',
+                 'sdist',
+                 'upload', '-r', 'local')
+        }
+        delete {
+            delete('README.rst')
+        }
+    }
+}
+
+
+// Profiling the code
+task profiling {
+    dependsOn 'setupPython'
+    doLast {
+        try {
+            profileDir.mkdirs()
+            def profileStatsOutput = new File(profileDir, "${project.name}_profile.pstats")
+            def profileDotOutput = new File(profileDir, "${project.name}_profile.dot")
+            def profilePngOutput = new File(profileDir, "${project.name}_profile.png")
+
+            def sphinxCodeBlockIndent = new String('   ')
+            def cmdDoc = new StringBuilder(sphinxCodeBlockIndent)
+            def codeProfileReportFile = new File("${projectDir}/${codeProfileReport}")
+
+            logger.quiet("Profiling ${project.name}")
+            exec {
+                executable "${miniconda.buildEnvironmentDirectory}/bin/python"
+                args('-m', 'cProfile', '-o', profileStatsOutput,
+                     "__init__.py")
+                cmdDoc.append(commandLine.join(' '))
+            }
+
+            cmdDoc.append("\n")
+            cmdDoc.append(sphinxCodeBlockIndent)
+
+            logger.info('convert pstats to dot')
+            exec {
+                executable "${miniconda.buildEnvironmentDirectory}/bin/gprof2dot"
+                args('-f', 'pstats',
+                     '-o', profileDotOutput,
+                     profileStatsOutput)
+                cmdDoc.append(commandLine.join(' '))
+            }
+            exec {
+                executable('git')
+                args('checkout', '--', codeProfileReportFile)
+            }
+
+            def reportWriter = new FileWriter(codeProfileReportFile, true)
+            reportWriter.write(cmdDoc.toString())
+            reportWriter.close()
+
+        } catch (MissingPropertyException e) {
+            logger.error(e.getMessage())
+            logger.error('Please define properties inside' +
+                         'gradle.properties file or using -P option in command line')
+            throw new InvalidUserDataException('properties are missing')
+        }
+    }
+}
+
+// Ordering Tasks (incubating feature of gradle)
+stopLocalPypiServer.mustRunAfter installOnLocalPypiServer
+docOnly.shouldRunAfter profiling
+docOnly.shouldRunAfter unitTestReport
