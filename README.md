@@ -43,3 +43,92 @@ The command `./gradlew profiling` will run your module using cProfile and gprof2
 Then, a dot graph will be generated (available in `build/profiles` folder) and be integrated in the documentation.
 
 See [gprof2dot](https://github.com/jrfonseca/gprof2dot) for futher details and examples.
+
+Code Profiling
+==============
+
+The gradle task \ **profiling** \  generates a DAG from profile of code execution.
+It will integrate the output (dot and commands) into the technical documentation (docs/code_profile_report.rst).
+
+The ``docs/code_profile_report.rst`` file has been added to git repository but we don't want to follow runtime modifications.
+To do that we use the command ``git update-index --assume-unchanged [file]`` (refer to `StackOverflow answer <https://stackoverflow.com/a/11430092>`_).
+If you do any global modification (like general contents) into this file you have to run ``git update-index --no-assume-unchanged [file]``
+
+.. code-block:: bash
+
+   # generate profile
+   ./gradlew profiling
+   # compile documentation
+   ./gradlew doc
+   # or
+   ./gradlew profiling doc
+
+
+Create a new release
+====================
+
+It's simple to create a release of source code using gradle and git.
+
+.. code-block:: bash
+
+   # in mysqlbagmanager/ folder
+   ./gradlew createRelease -PtagName="myVersion" -PtagLog="git tag message"
+   # it will create a tag and a archive into relases/ folder
+
+   # or using git directly
+   git tag -a 3.0.0 -m 'my python package version 3.0.0'
+   mkdir releases/
+   git archive --format=tar.gz --prefix=mysample-3.0.0-src/ 3.0.0 >releases/mysample-3.0.0.tar.gz
+
+.. note:: If you want to propagate tags to your remote repository don't forget to push it: `git push -u <remote> --tags`
+
+Local PyPi server
+=================
+
+If you want to use a local Pypi Server embedded into miniconda env in this repository,
+you need to have \ **htpasswd**\  installed on your device.
+
+Installation (MiniConda env)
+----------------------------
+
+The Conda package \ **pypiserver** \ is available into miniconda env.
+`GitHub repository <https://github.com/pypiserver/pypiserver>`_
+
+To setup the Pypi Server, launch the gradle task: setupLocalPypiServer (see \ *Apache-like authentication*\  for futher details).
+
+.. code-block:: bash
+
+   ./gradlew setupLocalPypiServer
+   # If you want to change the password define into gradle.properties file
+   # you can pass it from the command line
+   ./gradlew setupLocalPypiServer -PpypiServerPasswd=password
+
+
+Apache-like authentication (htpasswd)
+-------------------------------------
+
+.. note:: If you don't have ``htpasswd`` installed on your device:
+
+   .. code-block:: bash
+
+      # RedHad System
+      # CentOS
+      yum install httpd-tools
+      # Fedora
+      dnf install httpd-tools
+
+      # Debian System
+      apt-get install apache2-utils
+
+
+Create the Apache htpasswd file with at least one user/password pair with this
+command (you'll be prompted for a password):
+
+.. code-block:: bash
+
+   htpasswd -sc htpasswd.txt <some_username>
+
+or if you have bogus passwords that you don't care because they are for an
+internal service (which is still "bad", from a security prespective...)
+you may use this public service: `htpasswd-generator <http://www.htaccesstools.com/htpasswd-generator/>`_
+
