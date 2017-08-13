@@ -1,3 +1,6 @@
+# Auto generated files
+docs/readme.rst
+
 # Gradle
 .gradle/
 /build/
