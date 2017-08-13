@@ -15,4 +15,5 @@ def small_function():
 
 if __name__ == '__main__':
     print('Package Python sample')
-
+    x = small_function()
+    print(x)

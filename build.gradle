@@ -271,7 +271,7 @@ task profiling {
             exec {
                 executable "${miniconda.buildEnvironmentDirectory}/bin/python"
                 args('-m', 'cProfile', '-o', profileStatsOutput,
-                     "__init__.py")
+                     "sample/__init__.py")
                 cmdDoc.append(commandLine.join(' '))
             }
 
