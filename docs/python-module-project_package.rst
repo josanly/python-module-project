@@ -17,3 +17,17 @@ Submodules
 .. toctree::
     sample.subsample
 
+
+Test Coverage
+=============
+
+.. toctree::
+    sample.test_coverage
+
+
+Code Profiling
+=============
+
+.. toctree::
+    code_profile_report
+

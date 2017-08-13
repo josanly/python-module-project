@@ -14,7 +14,6 @@ Contents:
    readme
    python-module-project_package
 
-
 Indices and tables
 ==================
 

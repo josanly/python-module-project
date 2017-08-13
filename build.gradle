@@ -121,11 +121,11 @@ task unitTestReport {
             args('-m', 'pytest',
                  '--cov-report', 'term:skip-covered',
                  '--cov-report', 'html',
-                 '--cov=sbm/', 'tests/')
+                 '--cov=sample/', 'tests/')
         }
         copy {
             from "${projectDir}"
-            into "docs/sphinx/_static"
+            into "docs/_static"
             include 'htmlcov/'
         }
         delete {
