@@ -80,7 +80,7 @@ If you want to propagate tags to your remote repository don't forget to push it:
 ## Local PyPi server
 
 If you want to use a local Pypi Server embedded into miniconda env in this repository,
-you need to have \ **htpasswd**\  installed on your device.
+you need to have `htpasswd`  installed on your device.
 
 ### Installation (MiniConda env)
 
