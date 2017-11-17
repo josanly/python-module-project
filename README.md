@@ -44,7 +44,7 @@ Then, a dot graph will be generated (available in `build/profiles` folder) and b
 
 See [gprof2dot](https://github.com/jrfonseca/gprof2dot) for futher details and examples.
 
-## Code Profiling
+### Code Profiling
 
 The gradle task **profiling** generates a DAG from profile of code execution.
 It will integrate the output (dot and commands) into the technical documentation (docs/code_profile_report.rst).
