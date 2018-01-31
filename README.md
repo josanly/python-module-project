@@ -10,7 +10,7 @@ This is an example of python module.
 
 Gradle imports and locally installs a MiniConda env with all required dependencies without any conflit with your favorite environment.
 
-You don't need to install Gradle or Conda on your computer. Just use `gradlew` command (Gradle Wrapper), and all binaries will be downloaded. 
+You don't need to install Gradle or Conda on your computer. Launch Gradle Wrapper binary `./gradlew`, and all dependencies (and binaries) will be downloaded. 
 
 ## Compile the Sphinx Documentation
 
