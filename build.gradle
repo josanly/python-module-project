@@ -143,9 +143,26 @@ task setupDep {
     }
 }
 
+// Generate the setup.py file for package distribution
+task generateSetupPy {
+    doLast {
+        logger.info('generate setup.py file')
+        copy {
+            from "${projectDir}/resources"
+            into "${projectDir}"
+            include('setup.template.py')
+            rename('setup.template.py', 'setup.py')
+        }
+        exec {
+            executable 'sed'
+            args('-i', "s/PYTHON_VERSION/${requiredVersionOfPython}/", 'setup.py')
+        }
+    }
+}
+
 // Create a source release of the module
 task createRelease {
-    dependsOn 'unitTests'
+    dependsOn 'unitTests', 'generateSetupPy'
     doLast {
         try {
             def prefix = new String("--prefix=${project.name}-" + tagName + "-src/")
@@ -199,7 +216,7 @@ task setupLocalPypiServer {
         } else {
             logger.quiet("${pypircFile} file does not already exist. Create it")
             copy {
-                from projectDir
+                from "${projectDir}/resources"
                 into System.getProperty('user.home')
                 include('pypirc')
                 rename('pypirc', '.pypirc')
@@ -233,7 +250,7 @@ task startLocalPypiServer(type: SpawnProcessTask) {
 task stopLocalPypiServer(type: KillProcessTask)
 
 task installOnLocalPypiServer {
-    dependsOn 'startLocalPypiServer'
+    dependsOn 'startLocalPypiServer', 'generateSetupPy'
     doLast {
         exec {
             executable "${miniconda.buildEnvironmentDirectory}/bin/pandoc"
