@@ -134,8 +134,11 @@ task unitTestReport {
     }
 }
 
-// install any Dependencies not managed by miniconda
-// prefer to use pip from miniconda env: ${miniconda.buildEnvironmentDirectory}/bin/pip
+/*
+ * Install any dependencies not managed by miniconda
+ * To include these dependancies into miniconda env,
+ * prefer use pip from miniconda env: ${miniconda.buildEnvironmentDirectory}/bin/pip 
+ */
 task setupDep {
     dependsOn 'setupPython'
     doLast {
@@ -218,8 +221,8 @@ task setupLocalPypiServer {
             copy {
                 from "${projectDir}/resources"
                 into System.getProperty('user.home')
-                include('pypirc')
-                rename('pypirc', '.pypirc')
+                include('pypirc.template')
+                rename('pypirc.template', '.pypirc')
             }
             def writer = new FileWriter(new File(System.getProperty('user.home'), '.pypirc'), true)
             try {

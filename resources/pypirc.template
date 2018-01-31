@@ -1,0 +1,11 @@
+[distutils]
+index-servers =
+  pypi
+  local
+
+[pypi]
+username:<your_pypi_username>
+password:<your_pypi_passwd>
+
+[local]
+repository: http://localhost:8080
