@@ -13,7 +13,7 @@ miniconda {
     buildEnvironmentDirectory = new File(buildDir, 'python')
     minicondaVersion = '4.3.21'                                         // see https://repo.continuum.io/miniconda/
     packages = ['python', 'pytest', 'pytest-cov',
-                'pyyaml', 
+                'pyyaml',
                 'sphinx', 'pandoc',
                 'pypiserver', 'passlib',
                 'graphviz', 'gprof2dot']
@@ -108,9 +108,9 @@ task test {
 task unitTests(type: Exec) {
     dependsOn 'setupPython'
     executable "${miniconda.buildEnvironmentDirectory}/bin/python"
-    args('-m', 'pytest', 
+    args('-m', 'pytest',
          '--cov-report', 'term:skip-covered',
-         '--cov=sbm/', 'tests/')
+         '--cov=sample/', 'tests/')
 }
 
 task unitTestReport {
@@ -137,7 +137,7 @@ task unitTestReport {
 /*
  * Install any dependencies not managed by miniconda
  * To include these dependancies into miniconda env,
- * prefer use pip from miniconda env: ${miniconda.buildEnvironmentDirectory}/bin/pip 
+ * prefer use pip from miniconda env: ${miniconda.buildEnvironmentDirectory}/bin/pip
  */
 task setupDep {
     dependsOn 'setupPython'
