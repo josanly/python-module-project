@@ -1,5 +1,5 @@
 sample.subsample module
-======================
+=======================
 
 .. automodule:: sample.subsample
     :members:

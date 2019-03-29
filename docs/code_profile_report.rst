@@ -11,11 +11,10 @@ Code profile report
 
 Profile:
 
-.. graphviz:: ../../build/profiles/mysqlbagmanager_profile.dot
+.. graphviz:: ../../build/profiles/python-module-project_profile.dot
 
 Generated from :
 
 .. code:: bash
 
    # from profiling task
-
